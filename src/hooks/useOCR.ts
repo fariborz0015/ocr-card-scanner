@@ -4,7 +4,7 @@ import Tesseract from "tesseract.js";
 // Helper function to check if a URL is accessible
 const checkUrlAccessibility = async (url: string): Promise<boolean> => {
   try {
-    const response = await fetch(url, { method: 'HEAD', mode: 'cors' });
+    const response = await fetch(url, { method: "HEAD", mode: "cors" });
     return response.ok;
   } catch {
     return false;
@@ -41,8 +41,7 @@ export const useOCR = (): OCRState & OCRActions => {
         console.log("Initializing OCR worker...");
 
         // Detect environment and configure paths
-        const isProduction = process.env.NODE_ENV === 'production';
-        
+
         // Define multiple fallback configurations
         const workerConfigs = [
           // Config 1: Local WASM files (preferred for self-hosted)
@@ -50,52 +49,61 @@ export const useOCR = (): OCRState & OCRActions => {
             name: "Local WASM files",
             workerPath: "/wasm/worker.min.js",
             corePath: "/wasm/tesseract-core-simd.wasm.js",
-            options: {
-              ...(isProduction && { 
-                cachePath: './',
-                gzip: false,
-                langPath: "https://cdn.jsdelivr.net/npm/tesseract.js-core@5/lang-data/",
-              })
-            }
           },
           // Config 2: jsDelivr CDN
           {
             name: "jsDelivr CDN",
-            workerPath: "https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/worker.min.js",
-            corePath: "https://cdn.jsdelivr.net/npm/tesseract.js-core@5/tesseract-core-simd.wasm.js",
+            workerPath:
+              "https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/worker.min.js",
+            corePath:
+              "https://cdn.jsdelivr.net/npm/tesseract.js-core@5/tesseract-core-simd.wasm.js",
             options: {
-              langPath: "https://cdn.jsdelivr.net/npm/tesseract.js-core@5/lang-data/",
-            }
+              langPath:
+                "https://cdn.jsdelivr.net/npm/tesseract.js-core@5/lang-data/",
+            },
           },
           // Config 3: unpkg CDN
           {
             name: "unpkg CDN",
             workerPath: "https://unpkg.com/tesseract.js@5/dist/worker.min.js",
-            corePath: "https://unpkg.com/tesseract.js-core@5/tesseract-core-simd.wasm.js",
+            corePath:
+              "https://unpkg.com/tesseract.js-core@5/tesseract-core-simd.wasm.js",
             options: {
               langPath: "https://unpkg.com/tesseract.js-core@5/lang-data/",
-            }
+            },
           },
           // Config 4: Default bundled (final fallback)
           {
             name: "Default bundled",
             workerPath: undefined,
             corePath: undefined,
-            options: {}
-          }
+            options: {},
+          },
         ];
 
-        const currentConfig = workerConfigs[Math.min(ocrRetryCount, workerConfigs.length - 1)];
-        console.log(`Attempt ${ocrRetryCount + 1}: Using ${currentConfig.name}`);
+        const currentConfig =
+          workerConfigs[Math.min(ocrRetryCount, workerConfigs.length - 1)];
+        console.log(
+          `Attempt ${ocrRetryCount + 1}: Using ${currentConfig.name}`
+        );
 
         // Pre-check URLs if they're external
-        if (currentConfig.workerPath && currentConfig.workerPath.startsWith('http')) {
+        if (
+          currentConfig.workerPath &&
+          currentConfig.workerPath.startsWith("http")
+        ) {
           console.log("Checking CDN accessibility...");
-          const workerAccessible = await checkUrlAccessibility(currentConfig.workerPath);
-          const coreAccessible = await checkUrlAccessibility(currentConfig.corePath!);
-          
+          const workerAccessible = await checkUrlAccessibility(
+            currentConfig.workerPath
+          );
+          const coreAccessible = await checkUrlAccessibility(
+            currentConfig.corePath!
+          );
+
           if (!workerAccessible || !coreAccessible) {
-            throw new Error(`CDN files not accessible (worker: ${workerAccessible}, core: ${coreAccessible})`);
+            throw new Error(
+              `CDN files not accessible (worker: ${workerAccessible}, core: ${coreAccessible})`
+            );
           }
           console.log("CDN accessibility check passed");
         }
@@ -106,17 +114,23 @@ export const useOCR = (): OCRState & OCRActions => {
             if (m.status === "recognizing text") {
               console.log(`OCR Progress: ${(m.progress * 100).toFixed(1)}%`);
             } else if (m.status !== "recognizing text") {
-              console.log(`OCR Status: ${m.status}${m.progress ? ` (${(m.progress * 100).toFixed(1)}%)` : ''}`);
+              console.log(
+                `OCR Status: ${m.status}${
+                  m.progress ? ` (${(m.progress * 100).toFixed(1)}%)` : ""
+                }`
+              );
             }
           },
           ...currentConfig.options,
-          ...(currentConfig.workerPath && { workerPath: currentConfig.workerPath }),
+          ...(currentConfig.workerPath && {
+            workerPath: currentConfig.workerPath,
+          }),
           ...(currentConfig.corePath && { corePath: currentConfig.corePath }),
         };
 
         console.log("Creating worker with options:", {
-          workerPath: workerOptions.workerPath || 'default',
-          corePath: workerOptions.corePath || 'default',
+          workerPath: workerOptions.workerPath || "default",
+          corePath: workerOptions.corePath || "default",
         });
 
         const worker = await Tesseract.createWorker("eng", 1, workerOptions);
@@ -134,20 +148,27 @@ export const useOCR = (): OCRState & OCRActions => {
       } catch (err) {
         console.error("Failed to initialize OCR worker:", err);
         if (isMounted) {
-          const errorMessage = err instanceof Error ? err.message : "Unknown error";
+          const errorMessage =
+            err instanceof Error ? err.message : "Unknown error";
           console.error("OCR Worker Error Details:", errorMessage);
-          
+
           // Auto-retry up to 3 times before showing error
           if (ocrRetryCount < 3) {
-            console.log(`Auto-retrying OCR initialization (attempt ${ocrRetryCount + 2}/4)`);
+            console.log(
+              `Auto-retrying OCR initialization (attempt ${
+                ocrRetryCount + 2
+              }/4)`
+            );
             setTimeout(() => {
               if (isMounted) {
-                setOcrRetryCount(prev => prev + 1);
+                setOcrRetryCount((prev) => prev + 1);
               }
             }, 2000); // Wait 2 seconds before retry
           } else {
             setError(
-              `Failed to initialize OCR engine after ${ocrRetryCount + 1} attempts: ${errorMessage}`
+              `Failed to initialize OCR engine after ${
+                ocrRetryCount + 1
+              } attempts: ${errorMessage}`
             );
             setIsInitializingOCR(false);
           }
