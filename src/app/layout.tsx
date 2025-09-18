@@ -29,7 +29,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         {children}
-        <footer className="fixed bottom-5 right-5 bg-white/10 backdrop-blur-lg rounded-3xl p-6 text-white z-10 border border-white/20 shadow-2xl max-w-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-3xl hover:bg-white/15">
+        <footer className="fixed bottom-1/2 right-5 bg-white/10 backdrop-blur-lg rounded-3xl p-6 text-white z-10 border border-white/20 shadow-2xl max-w-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-3xl hover:bg-white/15">
           <div className="flex flex-col gap-4">
             <div className="developer-info">
               <h3 className="text-lg font-semibold mb-2 text-white">
