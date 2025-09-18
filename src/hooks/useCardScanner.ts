@@ -1,7 +1,11 @@
 import { useRef, useState, useCallback, useEffect } from "react";
 import { useCamera } from "./useCamera";
 import { useOCR } from "./useOCR";
-import { preprocessImage, extractCardNumberRegion, drawDetectionOverlay } from "@/lib/utils";
+import {
+  preprocessImage,
+  extractCardNumberRegion,
+  drawDetectionOverlay,
+} from "@/lib/utils";
 
 interface DetectedCard {
   number: string;
@@ -16,21 +20,21 @@ interface CardScannerState {
   cameraStatus: string;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   debugInfo: any;
-  
+
   // OCR state
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   tesseractWorker: any;
   isInitializingOCR: boolean;
   ocrRetryCount: number;
-  
+
   // Scanning state
   isScanning: boolean;
   isProcessing: boolean;
   detectedCard: DetectedCard | null;
-  
+
   // Error state
   error: string;
-  
+
   // Refs
   videoRef: React.RefObject<HTMLVideoElement | null>;
   canvasRef: React.RefObject<HTMLCanvasElement | null>;
@@ -136,14 +140,15 @@ export const useCardScanner = (): CardScannerState & CardScannerActions => {
         try {
           const { text, confidence } = await ocr.recognizeText(blob);
           console.log(text);
-          
+
           // Extract card number pattern (simplified)
-          const numberMatch = text.match(/(\d{4}\s?\d{4}\s?\d{4}\s?\d{4})/);
+          const numberMatch = text.match(/\b\d{4}\s?\d{4}\s?\d{4}\s?\d{4}\b/);
+          console.log("MATCHED NUMBER", numberMatch, "CONFIDENCE", confidence);
 
-          if (numberMatch && confidence > 60) {
-            const cardNumber = numberMatch[1].replace(/\s/g, "");
+          if (numberMatch && confidence > 50) {
+            const cardNumber = numberMatch[0]?.replace(/\s/g, "");
 
-            if (cardNumber.length === 16) {
+            if (cardNumber?.length === 16) {
               setDetectedCard({
                 number: cardNumber,
                 confidence,
@@ -186,7 +191,9 @@ export const useCardScanner = (): CardScannerState & CardScannerActions => {
         setDetectedCard(null);
       } else {
         // This would need to be handled by the component using this hook
-        console.error("Please wait for the camera to load completely before scanning.");
+        console.error(
+          "Please wait for the camera to load completely before scanning."
+        );
       }
     }
   }, [isScanning]);
@@ -210,25 +217,25 @@ export const useCardScanner = (): CardScannerState & CardScannerActions => {
     isVideoReady: camera.isVideoReady,
     cameraStatus: camera.cameraStatus,
     debugInfo: camera.debugInfo,
-    
+
     // OCR state
     tesseractWorker: ocr.tesseractWorker,
     isInitializingOCR: ocr.isInitializingOCR,
     ocrRetryCount: ocr.ocrRetryCount,
-    
+
     // Scanning state
     isScanning,
     isProcessing,
     detectedCard,
-    
+
     // Error state
     error,
-    
+
     // Refs
     videoRef,
     canvasRef,
     overlayCanvasRef,
-    
+
     // Actions
     startCamera: camera.startCamera,
     stopCamera: camera.stopCamera,
